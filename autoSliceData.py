@@ -5,7 +5,9 @@ input: centerLinePlaqueNormal.csv
 change: the index pointID to slice the geometry at the center line
 output: data/{pointID}.csv
 usage: /{user_path}/ParaView-5.11.0-MPI-Linux-Python3.9-x86_64/bin/pvbatch autoSliceData.py
-excuate this script in the openfoam case directory
+Location: this script should be excutae within the openfoam case directory
+
+* Note: the current time step is set to Last time step in the script
 """
 
 import os
@@ -23,6 +25,9 @@ class AutoSlice(object):
 
         self.ffoam = OpenFOAMReader(
             registrationName='f.foam', FileName=input_file)
+        self.animationScene1 = GetAnimationScene()
+        self.animationScene1.UpdateAnimationUsingDataTimeSteps()
+        self.animationScene1.GoToLast()    # last time step
         self.renderView1 = GetActiveViewOrCreate('RenderView')
         self.ffoamDisplay = Show(
             self.ffoam, self.renderView1, 'UnstructuredGridRepresentation')
@@ -48,7 +53,7 @@ class AutoSlice(object):
         self.renderView1.Update()
 
         ExportView(os.path.join(self.output_dir,
-                   f'{pointID}.csv'), view=self.spreadSheetView1)
+                   f'slice_id_{pointID}.csv'), view=self.spreadSheetView1)
 
 
 if __name__ == "__main__":
@@ -57,7 +62,7 @@ if __name__ == "__main__":
 
     df = pd.read_csv('centerLinePlaqueNormal.csv')
     pointID = df.index.tolist()  # Use index as pointID
-    # start from the 2nd point only slice every 10 points
+    # Skip the first point, start from the 2nd point only slice every 10 points
     pointID = pointID[1::10]
     for i in pointID:
         x = df.loc[i, 'x']
@@ -66,7 +71,6 @@ if __name__ == "__main__":
         nx = df.loc[i, 'nx']
         ny = df.loc[i, 'ny']
         nz = df.loc[i, 'nz']
-        print(x, y, z, nx, ny, nz)
 
         data_slicer.slice_and_save(x, y, z, nx, ny, nz, i)
         print(f'Point ID {i} is sliced and saved.')
